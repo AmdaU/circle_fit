@@ -12,3 +12,4 @@ root
 test.py
 .aedt
 .auto
+.aedt.auto
