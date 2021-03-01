@@ -1,15 +1,7 @@
-MSR_yshift.aedt
-MSR_yshift.aedt.lock
-MSR_yshift.aedtresults
-Project2.aedt
-Project2.aedt.lock
-Project2.aedtresults
+
 Rapport de simulation
 __pycache__
-calculs.py
 circuit.py
 root
 test.py
-.aedt
-.auto
-.aedt.auto
+*.aedt*
