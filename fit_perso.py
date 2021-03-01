@@ -205,6 +205,16 @@ class results(table):
         self.IsNormalized = True
 
     def splitBy(self, col):
+        """
+        returns a list of result objects, splitting the intial one by the
+        dfirrent values in the specified column
+
+        ex:
+        >>> a = results("foo")
+        >>> a
+        ... foo bar freq S12_re S12_im
+        ...   1   1    
+        """
         out = []
         for x in list(set(self[col])):
             sub_df = self.data.loc[self[col] == x]
