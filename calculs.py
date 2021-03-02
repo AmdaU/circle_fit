@@ -10,6 +10,8 @@ from tablpy.extra_funcs import extrem
 from scipy.interpolate import interp1d
 from scipy.optimize import fsolve, curve_fit
 
+DataPath = "Données\\simulation\\"
+
 plt.rcParams['figure.figsize'] = 10, 6
 matplotlib.rcParams.update({'font.size': 18})
 
@@ -30,9 +32,9 @@ def fix_csv(name):
 xd = reload(xd)
 xd.showUncertain = False
 
-fix_csv('S12(x)_fin_2.csv')
+fix_csv(DataPath + 'S12(x)_fin_2.csv')
 
-B = xd.results('S12(x)_fin_2')
+B = xd.results(DataPath + 'S12(x)_fin_2')
 C = B.splitBy('Sub_xoff_mm')
 
 # %%
