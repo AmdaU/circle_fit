@@ -32,7 +32,7 @@ def fix_csv(name):
 xd = reload(xd)
 xd.showUncertain = False
 
-fix_csv(DataPath + 'S12(x)_fin_2.csv')
+fix_csv(DataPath + 'S12(x).csv')
 
 B = xd.results(DataPath + 'S12(x)_fin_2')
 C = B.splitBy('Sub_xoff_mm')
@@ -43,27 +43,13 @@ Bdat = copy(B.data)
 # %%
 xd = reload(xd)
 xd.showUncertain = False
-B = xd.results('S12')
+B = xd.results(DataPath +'S12')
 B.data = Bdat
-B.renameCols({'Sub_xoff_mm': 'Delta_x'})
 
-dt = B.Analyse('Delta_x')
+dt = B.Analyse('high_res_mm')
 
 # %%
-
-xoff, frs = [], []
-
-for i in range(len(C)//2):
-    try:
-        print(i)
-
-        C[i].subLin()
-
-        C[i].isolateSpike()
-
-        #C[i].plot('re', 'im')
-        C[i].circleFit(show=True, reject=True)
-    except:
-        print("something went wrong")
+for c in C:
+    c.normalize(show=True)
 
 # %%
