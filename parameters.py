@@ -13,7 +13,7 @@ from time import sleep
 DataPath = "Données\\simulation\\"
 
 
-show = True
+show = False
 # Fit sur C(w, h)
 
 
@@ -37,11 +37,11 @@ def plan(X, a, b, c):
     return x*a + y*b + c
 
 
-popts, pcov = curve_fit(plan, CD[['w', 'h']].T, CD['c'])
+poptsC, pcov = curve_fit(plan, CD[['w', 'h']].T, CD['c'])
 if show:
     x, y = np.arange(*extrem(CD['w']), 0.05), np.arange(*extrem(CD['h']), 0.05)
     X, Y = np.meshgrid(x, y)
-    zs = np.array(plan((np.ravel(X), np.ravel(Y)), *popts))
+    zs = np.array(plan((np.ravel(X), np.ravel(Y)), *poptsC))
     Z = zs.reshape(X.shape)
 
 
@@ -60,7 +60,7 @@ if show:
 
 
 def CF(w, h):
-    return plan((w,h), *popts)
+    return plan((w,h), *poptsC)
 
 
 # %% Fit sur Cs(w, h) ---------------------------------------------------------
@@ -84,13 +84,13 @@ def plan(X, a, b, c):
     return x*a + y*b + c
 
 
-popts, pcov = curve_fit(plan, CsD[['w', 'h']].T, CsD['ca'])
+poptsCS, pcov = curve_fit(plan, CsD[['w', 'h']].T, CsD['ca'])
 
 
 if show:
     x, y = np.arange(*extrem(CsD['w']), 0.05), np.arange(*extrem(CsD['h']), 0.05)
     X, Y = np.meshgrid(x, y)
-    zs = np.array(plan((np.ravel(X), np.ravel(Y)), *popts))
+    zs = np.array(plan((np.ravel(X), np.ravel(Y)), *poptsCs))
     Z = zs.reshape(X.shape)
 
 
@@ -109,7 +109,7 @@ if show:
 
 
 def CsF(w, h):
-    return plan((w, h), *popts)
+    return plan((w, h), *poptsCs)
 
 # %% fit C(l) -----------------------------------------------------------------
 import matplotlib.pyplot as plt
@@ -150,13 +150,12 @@ def quad(X, a, b, c, d, f, g):
     return a*x**2 + c*x*y + d*x + f*y + g
 
 
-popts, pcov = curve_fit(quad, LD[['w', 'h']].T, LD['L'])
+poptsL, pcov = curve_fit(quad, LD[['w', 'h']].T, LD['L'])
 
-show=True
 if show:
     x, y = np.arange(*extrem(LD['w']), 0.05), np.arange(*extrem(LD['h']), 0.05)
     X, Y = np.meshgrid(x, y)
-    zs = np.array(quad((np.ravel(X), np.ravel(Y)), *popts))
+    zs = np.array(quad((np.ravel(X), np.ravel(Y)), *poptsL))
     Z = zs.reshape(X.shape)
 
 
@@ -177,6 +176,6 @@ if show:
 
 
 def LF(w, h):
-    return plan((w, h), *popts)
+    return quad((w, h), *poptsL)
 
 # %%

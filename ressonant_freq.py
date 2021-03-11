@@ -1,6 +1,5 @@
 # %%
 
-import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import brentq
 from parameters import CF, LF
@@ -42,4 +41,3 @@ def frp(w, h, Cs, epsilon):
     L = LF(w, h)
     print(C)
     return fr(L, C, Cs, epsilon, (2*h + w)*1e-3)
-

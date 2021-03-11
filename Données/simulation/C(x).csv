@@ -1,4 +1,4 @@
-"res_hight [mm]","res_width [mm]","xoff [mm]","Matrix1.C(Voltage4,Voltage3) [fF]"
+"res_hight [mm]","res_width [mm]","xoff [mm]","Matrix1.C(Voltage4 Voltage3) [fF]"
 3.5,1,2,-215.702125639612
 3.5,1,3,-215.851909889588
 3.5,1,4,-215.736591656406
