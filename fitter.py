@@ -27,7 +27,7 @@ class results(table):
     It is assumed that the last columns of the table are :Frequency (GHz),
     re(S_12), im(S_12), in this order.
     If that is not the case, you can change the names manually with the
-    .renameCols method and the units with the .giveUnits mehtod
+    .renameCols method and the units with the .giveUnits method
 
     """
     __doc__ += table.__doc__
@@ -35,8 +35,7 @@ class results(table):
     def __init__(self, fichier, db=False, data=None, AutoInsert=True, **kargs):
         super().__init__(fichier, AutoInsert=AutoInsert, data=data)
 
-
-        #
+        # Columns are renamed and given the right units
         if data is None:
             noms = list(self.data)[:-6:2]
             self.renameCols(' '.join(noms + ['f re im']))
@@ -65,7 +64,6 @@ class results(table):
         """ removes linear background from data """
         popt, pcov = self.fit(lin, 'f', '\\theta', show=False)
         self['\\theta'] = self['\\theta'] - lin(self['f'], *popt)
-        #self['\\theta'] = roll(self['\\theta'], -np.pi/2, np.pi/2)
         self.updateCart()
         self.IsSubLined = True
 
@@ -142,6 +140,7 @@ class results(table):
         if not self.IsIsolated and isolate:
             self.isolateSpike()
             self.IsIsolated = True
+        # if failed to identify a spike, data will be ingored
         if not self.ContainsRes:
             warnings.warn("The resonant Frequency appeares not to be in the "
                           "frequency range")
@@ -162,14 +161,11 @@ class results(table):
             self.guess_Q = self.guess_freq_res/self.guessWidth*5
             x0 = [self.guess_theta_0, self.guess_Q, self.guess_freq_res]
 
-        # def theta(x, theta0, Ql, fr):
-            # return roll((theta0 + 2*np.arctan(2*Ql*(1-x/fr))), -np.pi/2, np.pi/2)
-
+        # Definition of the model
         def theta2(x, theta0, Ql, fr):
-            return roll((theta0 + np.arctan(2*Ql*(1-x/fr)))-np.pi/2, -np.pi/2, np.pi/2)
+            return roll((theta0 + np.arctan(2*Ql*(1-x/fr)))-np.pi/2,
+                        -np.pi/2, np.pi/2)
 
-        #popt, pcov = curve_fit(theta2, *t[['f', '\\theta']].T, p0=x0)
-                               #sigma=t['\\theta']/t['mag'])
         Theta = Model(theta2)
         params = Theta.make_params(
             theta0=self.guess_theta_0,
@@ -177,20 +173,23 @@ class results(table):
             fr=self.guess_freq_res)
         freq = self['f']
 
-        weight = (10/(0.5+((self['f'] - self.guess_freq_res)/self.guessWidth)**2))
+        w = (10/(0.5+((self['f']-self.guess_freq_res)/self.guessWidth)**2))
 
-        #weight=1
-        result = Theta.fit(self['\\theta'], params, x=freq, weights=weight, max_nfev=10000)
+        result = Theta.fit(self['\\theta'], params, x=freq, weights=w,
+                           max_nfev=10000)
         self.guess_freq_res = result.values['fr']
         self.guess_Ql = result.values['Ql']
+
+        # coordinates of the point
         x = a + r*np.cos(result.values['theta0'])
         y = b + r*np.sin(result.values['theta0'])
         if show:
             t.plot("f", "\\theta")
             f = np.linspace(*extrem(t['f']), 1000)
-            #plt.plot(f, theta2(f, *popt), label="fit")
+            # plt.plot(f, theta2(f, *popt), label="fit")
             plt.plot(f, theta2(f, *result.values.values()), label='fit2')
-            plt.plot(f, theta2(f, *params.valuesdict().values()), label='guess')
+            plt.plot(f, theta2(f, *params.valuesdict().values()),
+                     label='guess')
             plt.legend()
             plt.show()
             self.plot('re', 'im')
@@ -207,13 +206,30 @@ class results(table):
     def splitBy(self, col):
         """
         returns a list of result objects, splitting the intial one by the
-        dfirrent values in the specified column
+        differents values in the specified column
 
         ex:
         >>> a = results("foo")
         >>> a
-        ... foo bar freq S12_re S12_im
-        ...   1   1
+        ... foo bar baz
+        ...   1   1   4
+        ...   1   2   5
+        ...   2   1   2
+        ...   2   2   3
+
+        >>> as = a.splitBy('foo')
+        >>> as[0]
+        ... bar baz
+        ...   1   4
+        ...   2   5
+
+        >>> as[0].foo
+        ... 1
+
+        >>> as[1]
+        ... bar baz
+        ...   1   2
+        ...   2   3
         """
         out = []
         for x in list(set(self[col])):
@@ -228,6 +244,7 @@ class results(table):
         return out
 
     def isolateSpike(self, show=False):
+        """Keeps only data close to the resonant frequency"""
         avg = np.average(self['mag'])
         std = np.std(self['mag'])
         minmag = float(self.data[self['mag'] == min(self['mag'])]['f'])
@@ -261,6 +278,7 @@ class results(table):
         self.IsIsolated = True
 
     def magFit(self, show=False):
+        """Fit on magnetude of data, normalizes if not already done"""
         if not self.ContainsRes:
             if self.IsNormalized:
                 self.normalize()
@@ -276,7 +294,7 @@ class results(table):
             phi=0,
             offset=0)
 
-        weight = (100/(1+((self['f'] - self.guess_freq_res)/self.guessWidth)**2))
+        weight = (100/(1+((self['f']-self.guess_freq_res)/self.guessWidth)**2))
 
         result = Mod_S12.fit(self['mag'], params, x=self['f'], weights=weight)
         p = result.params
@@ -295,6 +313,15 @@ class results(table):
         return result
 
     def Analyse(self, var, params=['fr', 'Ql', 'Qc', 'phi'], **kwargs):
+        """
+        finds correlation between specified variables and variables ouputed by
+        the magnetude fit like the ressonant frequency and quality factors
+
+        (var) independant variable of wich you want to see the effect
+
+        (params) [optional] parameters given by the magnetude fit of which you
+        want to see the correlation with **var**
+        """
         SubDts = self.splitBy(var)
         data = []
         for sub in SubDts:

@@ -1,7 +1,9 @@
+# %%
+
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import brentq
-
+from parameters import CF, LF
 
 def fr(L, C, Cs, epsilon, l, show=False, n=1):
     c = 299792485
@@ -22,7 +24,7 @@ def fr(L, C, Cs, epsilon, l, show=False, n=1):
         sol = brentq(lambda x: f1(x) - f2(x), x, x2)
         sols.append(sol/(2*np.pi))
         if show:
-            plt.scatter(sol, f2(sol), color='r')
+            plt.scatter(sol, f2(sol), s =2, color='r')
 
     if show:
         w = np.linspace(0, n*np.pi/(1e9*r), 100000)
@@ -34,3 +36,10 @@ def fr(L, C, Cs, epsilon, l, show=False, n=1):
     if n == 1:
         return sols[0]
     return sols
+
+def frp(w, h, Cs, epsilon):
+    C = CF(w, h)
+    L = LF(w, h)
+    print(C)
+    return fr(L, C, Cs, epsilon, (2*h + w)*1e-3)
+

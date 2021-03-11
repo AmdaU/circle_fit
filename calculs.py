@@ -15,6 +15,7 @@ DataPath = "Données\\simulation\\"
 plt.rcParams['figure.figsize'] = 10, 6
 matplotlib.rcParams.update({'font.size': 18})
 
+fix_csv(DataPath + 'L(w,h).csv')
 
 def fix_csv(name):
     with open(name) as f:
@@ -125,8 +126,12 @@ def f(w, h, xoff):
 
 # %%
 import numpy as np
-from ressonant_freq import fr
+from ressonant_freq import *
 import matplotlib.pyplot as plt
+import matplotlib
+from parameters import LF
+
+LF(1, 3.65)
 
 L = 5.76e-9
 C = 201.8e-15
@@ -135,8 +140,8 @@ epsilon = 2.57
 l = (3.65*2 + 1)*1e-3
 
 plt.title('Valeur de D.Zöpfl')
-print(fr(L, C, Cs, epsilon, l, show=True))
-
+print(fr(L, C, Cs, epsilon, l))
+plt.cla()
 
 plt.title('Nos valeurs')
 
@@ -146,13 +151,16 @@ Cs = 215e-15
 epsilon = 2.57
 l = (3.65*2 + 1)*1e-3
 
-print(fr(L, C, Cs, epsilon, l, show=True))
+print(fr(L, C, Cs, epsilon, l))
 
 L= np.logspace(-12,-6)
 
 frs = []
-for i in L:
-    frs.append(fr(i, C, Cs, epsilon, l))
+for i in np.linspace(2.5, 4.5, 5):
+    frs.append(frp(1, i, Cs, epsilon))
 
-plt.plot(L, frs)
+matplotlib.use('webagg')
+
+plt.plot(np.linspace(2.5, 4.5, 5), frs)
 plt.show()
+plt.cla()
