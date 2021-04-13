@@ -64,6 +64,7 @@ class results(table):
         """ removes linear background from data """
         popt, pcov = self.fit(lin, 'f', '\\theta', show=False)
         self['\\theta'] = self['\\theta'] - lin(self['f'], *popt)
+        self['\\theta'] = (self['\\theta'] +np.pi/2)%np.pi - np.pi/2
         self.updateCart()
         self.IsSubLined = True
 
@@ -75,7 +76,7 @@ class results(table):
 
         (show) plots data and fit, mainly for debuging
 
-        (reject) If true, reject points laying too far from the fitted circle
+        (reject) If true, rejects points laying too far from the fitted circle
         '''
         # genere une copie sur les quels les transformations seront fait
         t = copy(self)
@@ -98,7 +99,11 @@ class results(table):
         Circle = Model(circle)
         params = Circle.make_params(a=x0[0], b=x0[1], r=x0[2])
 
-        results = Circle.fit(t['mag'], params, theta=t['\\theta'])
+        try:
+            results = Circle.fit(t['mag'], params, theta=t['\\theta'], nan_policy='omit')
+        except:
+            self.failed = True
+            return None, None, None
         vals = results.values.values()
 
         # rejection of outliers points
@@ -144,17 +149,19 @@ class results(table):
         if not self.ContainsRes:
             warnings.warn("The resonant Frequency appeares not to be in the "
                           "frequency range")
+            self.failed = True
             return None
         if show:
             plt.title('Determining center and radius')
         a, b, r = self.circleFit(x0=x0c, show=show)
-
+        if a is None:
+            return
         t = copy(self)
 
         # Centering the circle
         t['re'] -= a
         t['im'] -= b
-
+        t.updatePolar()
         # Guessing initials parameters
         if x0 is None:
             self.guess_theta_0 = np.average(t['\\theta'])
@@ -171,11 +178,11 @@ class results(table):
             theta0=self.guess_theta_0,
             Ql=self.guess_freq_res/self.guessWidth*5,
             fr=self.guess_freq_res)
-        freq = self['f']
+        freq = t['f']
 
-        w = (10/(0.5+((self['f']-self.guess_freq_res)/self.guessWidth)**2))
+        w = (10/(0.5+((t['f']-self.guess_freq_res)/self.guessWidth)**2))
 
-        result = Theta.fit(self['\\theta'], params, x=freq, weights=w,
+        result = Theta.fit(t['\\theta'], params, x=freq, weights=w,
                            max_nfev=10000)
         self.guess_freq_res = result.values['fr']
         self.guess_Ql = result.values['Ql']
@@ -190,6 +197,7 @@ class results(table):
             plt.plot(f, theta2(f, *result.values.values()), label='fit2')
             plt.plot(f, theta2(f, *params.valuesdict().values()),
                      label='guess')
+            plt.hlines(result.values['theta0'], *extrem(f))
             plt.legend()
             plt.show()
             self.plot('re', 'im')
@@ -198,10 +206,27 @@ class results(table):
             plt.legend()
             plt.gca().spines['bottom'].set_position('zero')
             plt.show()
-        self['mag'] /= np.sqrt(x*x + y*y)
-        self['\\theta'] -= np.arctan2(y, x)
+        rho = np.sqrt(x*x + y*y)
+        theta = np.arctan2(y, x)
+        self['mag'] /= rho
+        print(result.values['theta0'])
+        self['\\theta'] -= theta
         self.updateCart()
         self.IsNormalized = True
+        # new center
+        R = np.array([[np.cos(-theta), -np.sin(-theta)],
+                      [np.sin(-theta), np.cos(-theta)]])
+        a, b = R@np.array((a, b))*1/rho
+        r /= rho
+        self.yc = b
+        self.phi = np.arcsin(b/r)
+        self.r = r
+        if show:
+            plt.hlines(self.yc, 0, 1)
+            plt.gca().set_aspect(1)
+            plt.gca().spines['bottom'].set_position('zero')
+            self.plot('re', 'im')
+            plt.show()
 
     def splitBy(self, col):
         """
@@ -264,6 +289,10 @@ class results(table):
             plt.vlines(minmag, 0, 1)
         keep = low_freq[abs(low_freq['mag'] - avg) < n*std]
         keep2 = high_freq[abs(high_freq['mag'] - avg) < n*std]
+        if len(keep) == 0 or len(keep2) == 0:
+            self.ContainsRes = False
+            self.failed = True
+            return
         x0 = keep.index[-1]
         x1 = keep2.index[0]
         if show:
@@ -279,13 +308,15 @@ class results(table):
 
     def magFit(self, show=False):
         """Fit on magnetude of data, normalizes if not already done"""
-        if not self.ContainsRes:
-            if self.IsNormalized:
+        if self.ContainsRes:
+            if not self.IsNormalized:
                 self.normalize()
+                if self.failed:
+                    return
         else:
             self.failed = True
+            print('Oups')
             return
-        print(self.ContainsRes)
         Mod_S12 = Model(S12_fit)
         params = Mod_S12.make_params(
             fr=self.guess_freq_res,
@@ -303,13 +334,13 @@ class results(table):
         if not result.errorbars\
            or np.any([abs(p[a].stderr/p[a].value) > 1 for a in p.keys()]):
             self.failed = True
+            print("failed")
             return
 
         self.freq_res = result.values['fr']
         self.Ql = result.values['Ql']
-        self.QC = result.values['Qc']
-        self.phi = result.values['phi']
         self.offset = result.values['offset']
+        self.Qc = self.Ql/(2*self.r*np.cos(self.phi))
         return result
 
     def Analyse(self, var, params=['fr', 'Ql', 'Qc', 'phi'], **kwargs):
@@ -325,14 +356,23 @@ class results(table):
         SubDts = self.splitBy(var)
         data = []
         for sub in SubDts:
-            results = sub.magFit()
+            sub.magFit()
             if not sub.failed:
-                results = result.params
-                exec(f"slice = [sub.{var}, 0]", locals(), globals())
-                for i in params:
-                    slice.extend([results[i].value, results[i].stderr])
+                ldic=locals()
+                exec(f"slice = [sub.{var}]", ldic)
+                slice = ldic['slice']
+                for i in [0]:
+                    slice+= [sub.freq_res, sub.Ql, sub.Qc, sub.phi]
+                print(slice)
                 data.append(slice)
-        dt = table("", data=data, AutoInsert=False)
+            # results = sub.magFit()
+            # if not sub.failed:
+            #     results = results.params
+            #     exec(f"slice = [sub.{var}, 0]", locals(), globals())
+            #     for i in params:
+            #         slice.extend([results[i].value, results[i].stderr])
+            #     data.append(slice)
+        dt = table("", data=data)
         dt.renameCols([var] + params)
         dt.giveUnits({'fr': sub.units['f']})
         for i in params:

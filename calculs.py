@@ -17,8 +17,6 @@ DataPath = "Données\\simulation\\"
 plt.rcParams['figure.figsize'] = 10, 6
 matplotlib.rcParams.update({'font.size': 18})
 
-fix_csv(DataPath + 'L(w,h).csv')
-
 def fix_csv(name):
     with open(name) as f:
         ls = f.readlines()
@@ -35,10 +33,25 @@ def fix_csv(name):
 xd = reload(xd)
 xd.showUncertain = False
 
-fix_csv(DataPath + 'C2.csv')
+fix_csv(DataPath + 'Cs(w,h).csv')
 
 B = xd.results(DataPath + 'S12(x)_fin_2')
+B.giveUnits({'Sub_xoff_mm': 'mm', "f": "Hz"})
+dt = B.Analyse('Sub_xoff_mm')
+
 C = B.splitBy('Sub_xoff_mm')
+
+for i in range(10):
+    print(i)
+    C[i].normalize(show=True)
+
+C[5].subLin()
+C[5].isolateSpike()
+
+C[5].circleFit(show=True)
+
+C[5].plot('re', 'im')
+C[5].isolateSpike()
 
 # %%
 Bdat = copy(B.data)
@@ -49,21 +62,52 @@ xd.showUncertain = False
 B = xd.results(DataPath +'S12')
 B.data = Bdat
 
-dt = B.Analyse('high_res_mm')
 
 # %%
 for c in C:
-    c.normalize(show=True)
+    c.magFit(show=True)
 
 
 
+C[1].magFit()
 
+C[1].plot('re', 'im')
+
+C[1].circleFit(show=True, x0=[0.5, 0, 1])
+
+C[0].ContainsRes
 
 # %%
+from tablpy import table
+from tablpy import defVal
+
+Cx = table(DataPath + 'C(x)')
+
+
+Cx.renameCols('h w x c')
+Cx.giveUnits({'c': 'fF', 'x': 'mm', 'w': 'mm'})
+Cx['c'] *= -1
 
 def lin(x, a, b):
     return a*(x) + b
 
+
+defVal({'l' : '11 0 mm'})
+
+Cx.newCol('d', 'l-x-w/2')
+def inv(x, a, b):
+    return a/x**(1.5) + b
+
+
+Cx.data.sort_values(by='d', inplace = True)
+
+std = np.std(Cx['c'])
+avg = np.average(Cx['c'])
+
+Cx.data = Cx.data[Cx['c']< avg+std*0.05]
+
+Cx.plot('d', 'c')
+plt.plot()
 
 popt, pcov = curve_fit(lin, w, -c)
 wtho = np.linspace(0.5, 15)
@@ -83,44 +127,10 @@ def lin2(params, a, b, c):
 
 w = CsD[]
 
-CsD.fit2(lin, 'w', 'c')
+CsD.fit(lin, 'w', 'c')
 
-# %% Fréquence de résonance théorique
-import numpy as np
-#import matplotlib
-from ressonant_freq import*
-# import matplotlib.pyplot as plt
-from parameters import LF
-from tablpy import table
-import matplotlib.pyplot as plt
+# %% Fréquence de résonance théorique -----------------------------------------
 
-DataPath = "Données\\simulation\\"
-
-Cs = 125e-15
-epsilon = 2.57
-
-w = np.linspace(0.5, 1.5, 10)
-h = np.linspace(2.5, 4.5 ,10)
-
-w, h = np.meshgrid(w, h)
-
-w.shape
-
-Z = np.zeros(w.shape)
-
-for i in range(Z.shape[0]):
-    for j in range(Z.shape[1]):
-        Z[i,j] = frp(w[i,j], h[i,j], Cs, epsilon)
-
-
-fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
-surf = ax.plot_surface(w, h, Z)
-ax.set_title("Fréquence de résonance théorique, Capacitance Shunt négligé")
-ax.set_xlabel('Largeur')
-ax.set_ylabel('Hateur')
-ax.set_zlabel('Fréquence de résonance')
-
-plt.show()
 # %%
 
 a = table(DataPath + 'C(w,h)')

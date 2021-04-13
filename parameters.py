@@ -64,12 +64,12 @@ def CF(w, h):
 
 
 # %% Fit sur Cs(w, h) ---------------------------------------------------------
-"""
+
 CsD = table(DataPath + 'Cs(w,h)')
 CsD.renameCols('w h cs')
 CsD['cs'] *= -1
-CsD.giveUnits({'w': 'mm', 'h': 'mm', 'cs': 'nF'})
-
+CsD.giveUnits({'w': 'mm', 'h': 'mm', 'cs': 'fF'})
+CsD.changeUnits({'cs': 'F'})
 w, h, cs = CsD[['w', 'h', 'cs']].T
 cs.flatten()
 
@@ -84,8 +84,7 @@ def plan(X, a, b, c):
     return x*a + y*b + c
 
 
-poptsCS, pcov = curve_fit(plan, CsD[['w', 'h']].T, CsD['ca'])
-
+poptsCs, pcov = curve_fit(plan, CsD[['w', 'h']].T, CsD['cs'])
 
 if show:
     x, y = np.arange(*extrem(CsD['w']), 0.05), np.arange(*extrem(CsD['h']), 0.05)
@@ -125,10 +124,10 @@ CD.renameCols('w h c')
 CD['c'] *= -1
 CD.giveUnits({'w': 'mm', 'h': 'mm', 'c': 'nF'})
 CD.newCol('l', '2*h + w')
+if show:
+    CD.fit(lin, 'l', 'c')
+    plt.show()
 
-CD.fit(lin, 'l', 'c')
-plt.show()
-"""
 # %% Fit sur L(w, h) ---------------------------------------------------------
 
 

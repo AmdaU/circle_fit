@@ -2,7 +2,7 @@
 
 import numpy as np
 from scipy.optimize import brentq
-from parameters import CF, LF
+from parameters import CF, LF, CsF
 
 def fr(L, C, Cs, epsilon, l, show=False, n=1):
     c = 299792485
@@ -36,8 +36,8 @@ def fr(L, C, Cs, epsilon, l, show=False, n=1):
         return sols[0]
     return sols
 
-def frp(w, h, Cs, epsilon):
+def frp(w, h, epsilon):
     C = CF(w, h)
     L = LF(w, h)
-    print(C)
+    Cs = CsF(w, h)
     return fr(L, C, Cs, epsilon, (2*h + w)*1e-3)
