@@ -1,6 +1,7 @@
 import warnings
 import numpy as np
 from lmfit import Model
+from scipy.optimize import curve_fit
 from tablpy import table
 import matplotlib.pyplot as plt
 from copy import deepcopy as copy
@@ -24,19 +25,38 @@ class results(table):
 
     https://github.com/AmdaUwU/tablpy
 
+    (fichier) This is where you give the path of the file you want to import
+        the data from (.csv or .xlsx supported). DO NOT specifify explicitely
+        the file extension or it will not work due to a bug in tablpy.
+
+    (data) [optional] You can pass in an already generated data structure 
+        (np.array or pd.DataFrame), the 'fichier' keyword will be ignored if 
+        you choose to do so
+
+    (AutoInsert) [optional] Uncertainties columns will be automatically
+        generated if none are found
+
+    (forceFormat) [optional] If True, data will be reformated even if passed
+        with the data argument (reforamating explained below)
+
     It is assumed that the last columns of the table are :Frequency (GHz),
-    re(S_12), im(S_12), in this order.
+    re(S_12), im(S_12), in this order and colmuns will be renamed accordingly
     If that is not the case, you can change the names manually with the
-    .renameCols method and the units with the .giveUnits method
+    .renameCols method and the units with the .giveUnits method.txt
+
+    The, real, imaginary, mangetude and agular componants are all sotred for
+    each points at all times and kept consitant with each other using the
+    appropriates methodes
 
     """
     __doc__ += table.__doc__
 
-    def __init__(self, fichier, db=False, data=None, AutoInsert=True, **kargs):
+    def __init__(self, fichier, data=None, AutoInsert=True,
+                 forceFormat=False, **kargs):
         super().__init__(fichier, AutoInsert=AutoInsert, data=data)
 
         # Columns are renamed and given the right units
-        if data is None:
+        if data is None or forceFormat:
             noms = list(self.data)[:-6:2]
             self.renameCols(' '.join(noms + ['f re im']))
             self.giveUnits({'f': 'GHz'})
@@ -60,11 +80,16 @@ class results(table):
         self['\\theta'] = np.arctan2(*self[['im', 're']].T)
         self['mag'] = np.sqrt(self['re']**2+self['im']**2)
 
-    def subLin(self):
+    def subLin(self, show=False, p0=None):
         """ removes linear background from data """
-        popt, pcov = self.fit(lin, 'f', '\\theta', show=False)
-        self['\\theta'] = self['\\theta'] - lin(self['f'], *popt)
-        self['\\theta'] = (self['\\theta'] +np.pi/2)%np.pi - np.pi/2
+        popt, pcov = curve_fit(lin, *self[['f', '\\theta']].T)
+        if show:
+            print(popt)
+            plt.plot(self['f'],self['\\theta'])
+            plt.plot(self['f'], lin(self['f'], *popt))
+            plt.show()
+        self['\\theta'] = self['\\theta'] - lin(self['f'], *popt[:2])
+        #self['\\theta'] = (self['\\theta'] +np.pi/2)%np.pi - np.pi/2
         self.updateCart()
         self.IsSubLined = True
 
@@ -110,7 +135,7 @@ class results(table):
         diff = t['mag']-circle(t['\\theta'], *vals)
         std = np.std(diff)
 
-        # arbitrairy amount of standard deviation allowed
+        # somewhat arbitrairy amount of standard deviation allowed
         n = 1
 
         if reject and not self.IsRejected:
@@ -155,10 +180,12 @@ class results(table):
             plt.title('Determining center and radius')
         a, b, r = self.circleFit(x0=x0c, show=show)
         if a is None:
+            print('Cricle fitting has failed!')
             return
+
         t = copy(self)
 
-        # Centering the circle
+        # Centering the circle so that the function is not multivalued in polar
         t['re'] -= a
         t['im'] -= b
         t.updatePolar()
@@ -180,6 +207,7 @@ class results(table):
             fr=self.guess_freq_res)
         freq = t['f']
 
+        # Somewhat arbitrairy weighing
         w = (10/(0.5+((t['f']-self.guess_freq_res)/self.guessWidth)**2))
 
         result = Theta.fit(t['\\theta'], params, x=freq, weights=w,
@@ -272,10 +300,12 @@ class results(table):
         """Keeps only data close to the resonant frequency"""
         avg = np.average(self['mag'])
         std = np.std(self['mag'])
+        # frequency at max and min, both roughfly the resonant frequency
         minmag = float(self.data[self['mag'] == min(self['mag'])]['f'])
         maxmag = float(self.data[self['mag'] == max(self['mag'])]['f'])
         self.guess_freq_res =\
             float(self.data[self['\\theta'] == min(self['\\theta'])]['f'])
+
         low_freq = self.data.loc[self['f'] < minmag]
         high_freq = self.data.loc[self['f'] > maxmag]
         if len(low_freq) == 0 or len(high_freq) == 0:

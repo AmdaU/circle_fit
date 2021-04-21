@@ -11,50 +11,35 @@ from progressbar import ProgressBar
 from tablpy.extra_funcs import extrem
 from scipy.interpolate import interp1d
 from scipy.optimize import fsolve, curve_fit
+from extra_funcs import *
 
-DataPath = "Données\\simulation\\"
 
 plt.rcParams['figure.figsize'] = 10, 6
 matplotlib.rcParams.update({'font.size': 18})
 
-def fix_csv(name):
-    with open(name) as f:
-        ls = f.readlines()
-
-    with open(name, "w") as f:
-        ls[0] = ls[0]   .replace('","', '_placeholder_')\
-                        .replace(",", " ")\
-                        .replace("_placeholder_", '","')
-        f.writelines(ls)
-
-
 # %% Correlation des différent paramètres
 
+DataPath = "..\\mesures\\simulation\\"
 xd = reload(xd)
 xd.showUncertain = False
 
 fix_csv(DataPath + 'Cs(w,h).csv')
 
-B = xd.results(DataPath + 'S12(x)_fin_2')
+B = xd.results(DataPath + 'S12(x)_fin')
+print(B)
 B.giveUnits({'Sub_xoff_mm': 'mm', "f": "Hz"})
 dt = B.Analyse('Sub_xoff_mm')
 
+# %%
 C = B.splitBy('Sub_xoff_mm')
-
-for i in range(10):
-    print(i)
-    C[i].normalize(show=True)
-
-C[5].subLin()
-C[5].isolateSpike()
-
-C[5].circleFit(show=True)
-
-C[5].plot('re', 'im')
-C[5].isolateSpike()
+# %%
+C[0].plot('re', 'im')
+plt.show()
+C[0].subLin(show=True)
+C[0].plot('re', 'im')
 
 # %%
-Bdat = copy(B.data)
+B.data
 
 # %%
 xd = reload(xd)
@@ -64,18 +49,17 @@ B.data = Bdat
 
 
 # %%
-for c in C:
-    c.magFit(show=True)
 
+n=10
 
+print(C[n])
+C[n].magFit()
 
-C[1].magFit()
+C[n].plot('re', 'im')
 
-C[1].plot('re', 'im')
+C[n].circleFit(show=True, x0=[0.5, 0, 1])
 
-C[1].circleFit(show=True, x0=[0.5, 0, 1])
-
-C[0].ContainsRes
+C[n].ContainsRes
 
 # %%
 from tablpy import table
@@ -131,8 +115,6 @@ CsD.fit(lin, 'w', 'c')
 
 # %% Fréquence de résonance théorique -----------------------------------------
 
-# %%
-
 a = table(DataPath + 'C(w,h)')
 a.renameCols('w h c')
 
@@ -148,3 +130,14 @@ l = (3.65*2 + 1)*1e-3
 
 plt.title('Valeur de D.Zöpfl')
 print(fr(L, C, Cs, epsilon, l))
+
+# %%
+from fitter import results
+from tablpy import table
+
+a = results(DataPath + 'S12')
+print(a)
+a.plot('f', '\\theta')
+# %%
+import tably
+# %%
