@@ -26,12 +26,12 @@ xd.showUncertain = False
 fix_csv(DataPath + 'Cs(w,h).csv')
 
 B = xd.results(DataPath + 'S12(x)_fin')
-print(B)
-B.giveUnits({'Sub_xoff_mm': 'mm', "f": "Hz"})
-dt = B.Analyse('Sub_xoff_mm')
+B.renameCols({'Sub_xoff_mm': 'dx'})
+B.giveUnits({'dx': 'mm', "f": "GHz"})
+dt = B.Analyse('dx', save=True)
 
 # %%
-C = B.splitBy('Sub_xoff_mm')
+C = B.splitBy('dx')
 # %%
 C[0].plot('re', 'im')
 plt.show()

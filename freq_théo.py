@@ -1,3 +1,5 @@
+# %%
+
 import numpy as np
 #import matplotlib
 from ressonant_freq import*
@@ -18,6 +20,8 @@ h = np.linspace(2.5, 4.5 ,10)
 
 w, h = np.meshgrid(w, h)
 
+cmap='inferno'
+
 w.shape
 
 Z = np.zeros(w.shape)
@@ -26,15 +30,23 @@ for i in range(Z.shape[0]):
     for j in range(Z.shape[1]):
         Z[i,j] = frp(w[i,j], h[i,j], epsilon)
 
+plt.xlabel('Largeur')
+plt.ylabel('Hauteur')
+plt.pcolormesh(w,h, Z, cmap=cmap)
+plt.colorbar()
+plt.savefig('color_freq_theo.png')
+plt.show()
 
 fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
-surf = ax.plot_surface(w, h, Z)
-ax.set_title("Fréquence de résonance théorique, Capacitance Shunt négligé")
+surf = ax.plot_surface(w, h, Z, cmap=cmap)
+ax.set_title("Fréquence de résonance théorique")
 ax.set_xlabel('Largeur')
 ax.set_ylabel('Hauteur')
 ax.set_zlabel('Fréquence de résonance')
 
 
-frp(1, 3.65, epsilon)
+plt.savefig('3D_freq_theo.png')
 
 plt.show()
+
+# %%

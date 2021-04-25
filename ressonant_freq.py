@@ -5,6 +5,15 @@ from scipy.optimize import brentq
 from parameters import CF, LF, CsF
 
 def fr(L, C, Cs, epsilon, l, show=False, n=1):
+    """
+    returns de theoretical frequency of the resonator
+
+    L :      Inductance
+    C :      Capacitance
+    Cs:      Capacitance Shunt
+    epsilon: permitivity if the substrate
+    l :      total lenght
+    """
     c = 299792485
     r = np.sqrt(epsilon)/c*l
     Z0 = np.sqrt(L/C)
@@ -37,6 +46,10 @@ def fr(L, C, Cs, epsilon, l, show=False, n=1):
     return sols
 
 def frp(w, h, epsilon):
+    """
+    Return the renonant frequency based on width and hight of the 
+    resonater instead of L, C, Cs and epsilon
+    """
     C = CF(w, h)
     L = LF(w, h)
     Cs = CsF(w, h)

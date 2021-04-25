@@ -1,15 +1,18 @@
+import os
 import warnings
 import numpy as np
 from lmfit import Model
-from scipy.optimize import curve_fit
 from tablpy import table
 import matplotlib.pyplot as plt
-from copy import deepcopy as copy
 from scipy.stats import pearsonr
+from copy import deepcopy as copy
+from scipy.optimize import curve_fit
 from tablpy.extra_funcs import roll, extrem
 
 table.showUncertain = False
 
+if 'fitter_plots' not in os.listdir():
+    os.mkdir('fitter_plots')
 
 def lin(x, a, b):
     return a*x + b
@@ -237,7 +240,6 @@ class results(table):
         rho = np.sqrt(x*x + y*y)
         theta = np.arctan2(y, x)
         self['mag'] /= rho
-        print(result.values['theta0'])
         self['\\theta'] -= theta
         self.updateCart()
         self.IsNormalized = True
@@ -373,7 +375,7 @@ class results(table):
         self.Qc = self.Ql/(2*self.r*np.cos(self.phi))
         return result
 
-    def Analyse(self, var, params=['fr', 'Ql', 'Qc', 'phi'], **kwargs):
+    def Analyse(self, var, params=['fr', 'Ql', 'Qc', 'phi'], save=False, **kwargs):
         """
         finds correlation between specified variables and variables ouputed by
         the magnetude fit like the ressonant frequency and quality factors
@@ -393,7 +395,6 @@ class results(table):
                 slice = ldic['slice']
                 for i in [0]:
                     slice+= [sub.freq_res, sub.Ql, sub.Qc, sub.phi]
-                print(slice)
                 data.append(slice)
             # results = sub.magFit()
             # if not sub.failed:
@@ -406,10 +407,12 @@ class results(table):
         dt.renameCols([var] + params)
         dt.giveUnits({'fr': sub.units['f']})
         for i in params:
-            dt.plot(var, i)
+            dt.plot(var, i, markersize=20)
             corr, p = pearsonr(*dt[[var, i]].T)
             plt.annotate('r = {:.3f}\np = {:.3g}'.format(corr, p),
                          xy=(0.05, 0.25), xycoords='axes fraction')
+            if save:
+                plt.savefig('fitter_plots/' + f"corr_{var}-{i}.png")
             plt.show()
         return dt
 
