@@ -1,3 +1,5 @@
+# Document servant à traiter les données provenants de mesures
+
 # %%
 
 import matplotlib
@@ -5,21 +7,39 @@ import numpy as np
 import fitter as xd
 from importlib import reload
 import matplotlib.pyplot as plt
-from copy import deepcopy as copy
-from progressbar import ProgressBar
-from tablpy.extra_funcs import extrem
 from extra_funcs import *
-
-# %%
 from tablpy import table
 import pandas as pd
-
-dat = pd.read_csv('../mesures/transmission_froid_complex/res22db20210414-165910.txt',
-                  skiprows=25, delimiter='\t')
+import os
 
 # %%
-a = xd.results('meme', data=dat, forceFormat=True)
+path = '../mesures/transmission-chaud/'
+for i in os.listdir(path)[:-1]:
+    a = table(path + i, delimiter='\t')
+    a.renameCols(['f', 'mag'])
+    a.giveUnits({'f':'Hz', 'mag':'dB'})
+    a.changeUnits({'f': 'GHz'})
+    a.plot('f', 'mag')
+    plt.savefig('data_graph/chaud_'+i.replace('csv','png'))
+    plt.show()
 
+# %%
+path = '../mesures/transmission-froid/'
+for i in os.listdir(path):
+    a = table(path + i)
+    a.renameCols(['f', 'mag'])
+    a.giveUnits({'f':'Hz', 'mag':'dB'})
+    a.changeUnits({'f': 'GHz'})
+    a.plot('f', 'mag')
+    plt.savefig('data_graph/froid_'+i.replace('csv','png'))
+    plt.show()
+
+
+# %%
+a = xd.results('../mesures/transmission_froid_complex/res22db20210414-165910',
+               delimiter='\t', forceFormat=True, skiprows=25)
+
+# %%
 a.data['mag']/= max(a.data['mag'])
 
 a.plot('f', 'mag')

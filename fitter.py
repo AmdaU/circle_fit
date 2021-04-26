@@ -28,12 +28,11 @@ class results(table):
 
     https://github.com/AmdaUwU/tablpy
 
-    (fichier) This is where you give the path of the file you want to import
-        the data from (.csv or .xlsx supported). DO NOT specifify explicitely
-        the file extension or it will not work due to a bug in tablpy.
+    (file) This is where you give the path of the file you want to import
+        the data from (text files or .xlsx supported).
 
     (data) [optional] You can pass in an already generated data structure 
-        (np.array or pd.DataFrame), the 'fichier' keyword will be ignored if 
+        (np.array or pd.DataFrame), the 'file' keyword will be ignored if 
         you choose to do so
 
     (AutoInsert) [optional] Uncertainties columns will be automatically
@@ -54,19 +53,21 @@ class results(table):
     """
     __doc__ += table.__doc__
 
-    def __init__(self, fichier, data=None, AutoInsert=True,
-                 forceFormat=False, **kargs):
-        super().__init__(fichier, AutoInsert=AutoInsert, data=data)
+    def __init__(self, file, data=None, AutoInsert=True,
+                 forceFormat=False, delimiter=',', skiprows=None, **kwargs):
+        super().__init__(file, AutoInsert=AutoInsert, data=data,
+                         delimiter=delimiter, skiprows=skiprows)
 
         # Columns are renamed and given the right units
         if data is None or forceFormat:
+            print(data)
             noms = list(self.data)[:-6:2]
-            self.renameCols(' '.join(noms + ['f re im']))
+            self.renameCols(noms + ['f', 're', 'im'])
             self.giveUnits({'f': 'GHz'})
             self.newCol(r'\theta', 'atan(im/re)', units='rad')
             self.newCol(r'mag', 'sqrt(re**2 + im**2)', units='1')
-            for i in kargs:
-                exec(f"self.{i} = kargs[i]")
+            for i in kwargs:
+                exec(f"self.{i} = kwargs[i]")
         self.IsSubLined = False
         self.IsIsolated = False
         self.IsRejected = False

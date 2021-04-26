@@ -50,3 +50,5 @@ plt.savefig('3D_freq_theo.png')
 plt.show()
 
 # %%
+frp(1, 3.5, epsilon)
+# %%
