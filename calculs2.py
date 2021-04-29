@@ -11,6 +11,7 @@ from extra_funcs import *
 from tablpy import table
 import pandas as pd
 import os
+from fitter import results
 
 # %%
 path = '../mesures/transmission-chaud/'
@@ -34,9 +35,33 @@ for i in os.listdir(path):
     plt.savefig('data_graph/froid_'+i.replace('csv','png'))
     plt.show()
 
+#%%
+path = '../mesures/transmission_froid_complex/'
+for i in os.listdir(path):
+    a = results(path + i, skiprows=26, delimiter='\t')
+    #a.renameCols(['f', 'mag'])
+    a.giveUnits({'f':'Hz', 'mag':'dB'})
+    a.changeUnits({'f': 'GHz'})
+    a.plot('f', 'mag')
+    plt.savefig('data_graph/froid_'+i.replace('txt','png'))
+    plt.show()
+
+#%%
+noms = ['-10 dB', '-1 dB', '-3 dB', '-4 dB', '-7 dB']
+
+path = '../mesures/transmission_froid_complex/'
+for i in enumerate(filter(lambda i: 'res1' in i, os.listdir(path))):
+    a = results(path + i[1], skiprows=26, delimiter='\t')
+    a.giveUnits({'f':'Hz'})
+    a.changeUnits({'f': 'GHz'})
+    plt.xlim(8.3525,8.355)
+    a.plot('f', 'mag', label = noms[i[0]])
+plt.legend()
+plt.savefig('data_graph/res1-comp.png')
+plt.show()
 
 # %%
-a = xd.results('../mesures/transmission_froid_complex/res22db20210414-165910',
+a = xd.results('../mesures/transmission_froid_complex/res1-10db20210414-160527.txt',
                delimiter='\t', forceFormat=True, skiprows=25)
 
 # %%
@@ -45,7 +70,7 @@ a.data['mag']/= max(a.data['mag'])
 a.plot('f', 'mag')
 plt.show()
 
-a.guess_freq_res = 8.429e9
+a.guess_freq_res = 8.43e9
 a.guess_Ql = 1e4
 a.guessWidth= 1e6
 a.IsNormalized = True
